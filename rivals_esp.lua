@@ -4,177 +4,232 @@ local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
--- --- SETTINGS ---
-_G.Aimbot = false
-_G.ESP_Box = false
-_G.ESP_Name = false
-_G.ESP_Health = false
-_G.FOV = 150 
-_G.Smoothness = 0.5
+-- Variables (_G to persist settings across executions)
+_G.Aimbot = _G.Aimbot or false
+_G.ESP = _G.ESP or false
+_G.FOV = 150
+_G.Smoothness = 0.5 -- 0 to 1 (lower is stickier)
 
--- --- UI PARENT ---
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "AbhishekModPremium"
+-- --- 1. SCRIPT PARENTING ---
+-- Use CoreGui to avoid standard Roblox UI deletion on reset
+local AbhishekGui = Instance.new("ScreenGui", CoreGui)
+AbhishekGui.Name = "AbhishekModV2_Fixed"
 
--- --- MAIN FRAME ---
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
+-- --- 2. MAIN FRAME CREATION (The Big Menu) ---
+local MainFrame = Instance.new("Frame", AbhishekGui)
+MainFrame.Size = UDim2.new(0, 200, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -150) -- Default Center screen
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Dark Grey
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Draggable = true -- Big menu draggable
+MainFrame.Visible = true -- Big menu visible by default
+
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local mainStroke = Instance.new("UIStroke", MainFrame)
+mainStroke.Color = Color3.fromRGB(0, 255, 127) -- Premium Green
+mainStroke.Thickness = 2
 
--- Glowing Border
-local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(0, 255, 127)
-Stroke.Thickness = 2
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
--- Sidebar (Tabs)
-local SideBar = Instance.new("Frame", MainFrame)
-SideBar.Size = UDim2.new(0, 80, 1, 0)
-SideBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 10)
-
--- Container for Pages
-local Container = Instance.new("Frame", MainFrame)
-Container.Position = UDim2.new(0, 90, 0, 40)
-Container.Size = UDim2.new(1, -100, 1, -50)
-Container.BackgroundTransparency = 1
-
-local PageLayout = Instance.new("UIPageLayout", Container)
-PageLayout.ScrollWheelInputEnabled = false
-PageLayout.TweenTime = 0.3
+local layout = Instance.new("UIListLayout", MainFrame)
+layout.Padding = UDim.new(0, 10)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 -- Title
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, -80, 0, 40)
-Title.Position = UDim2.new(0, 80, 0, 0)
-Title.Text = "ABHISHEK MOD v2"
-Title.TextColor3 = Color3.fromRGB(0, 255, 127)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.BackgroundTransparency = 1
+local title = Instance.new("TextLabel", MainFrame)
+title.Size = UDim2.new(1, 0, 0, 45)
+title.Text = "ABHISHEK MOD"
+title.TextColor3 = Color3.fromRGB(0, 255, 127)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.BackgroundTransparency = 1
 
--- --- TAB CREATOR ---
-local function CreateTab(name, order)
-    local TabBtn = Instance.new("TextButton", SideBar)
-    TabBtn.Size = UDim2.new(1, 0, 0, 40)
-    TabBtn.Position = UDim2.new(0, 0, 0, (order-1)*45 + 10)
-    TabBtn.Text = name
-    TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    TabBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    TabBtn.Font = Enum.Font.GothamBold
-    TabBtn.TextSize = 12
-    Instance.new("UICorner", TabBtn)
-    
-    local Page = Instance.new("ScrollingFrame", Container)
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1
-    Page.ScrollBarThickness = 0
-    local List = Instance.new("UIListLayout", Page)
-    List.Padding = UDim.new(0, 5)
+-- --- 3. FLOATING LOGO (HIDE HONE KE BAAD AANE WALA ROUND BUTTON) ---
+-- ***CRITICAL FIX HERE: Logo Button must be parented to ScreenGui, not MainFrame!***
+local LogoButton = Instance.new("TextButton", AbhishekGui)
+LogoButton.Size = UDim2.new(0, 50, 0, 50)
+LogoButton.Position = UDim2.new(0.02, 0, 0.2, 0) -- Fixed initial logo pos on screen
+LogoButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Dark Grey
+LogoButton.Text = "AM"
+LogoButton.TextColor3 = Color3.fromRGB(0, 255, 127) -- Premium Green
+LogoButton.Font = Enum.Font.GothamBold
+LogoButton.TextSize = 22
+LogoButton.Visible = false -- Initially hidden while MainFrame is shown
+LogoButton.Active = true
+LogoButton.Draggable = true -- Logo draggable
 
-    TabBtn.MouseButton1Click:Connect(function()
-        PageLayout:JumpTo(Page)
-    end)
-    return Page
+Instance.new("UICorner", LogoButton).CornerRadius = UDim.new(1, 0) -- Perfect Circle
+local logoStroke = Instance.new("UIStroke", LogoButton)
+logoStroke.Color = Color3.fromRGB(0, 255, 127)
+logoStroke.Thickness = 2
+
+-- --- 4. TOGGLE LOGIC FUNCTION ---
+local function ToggleMenu()
+    if MainFrame.Visible then
+        -- Action: HIDE Big Menu, SHOW Small Logo
+        MainFrame.Visible = false
+        LogoButton.Visible = true
+        print("Menu Hidden - Logo Shown")
+    else
+        -- Action: SHOW Big Menu, HIDE Small Logo
+        MainFrame.Visible = true
+        LogoButton.Visible = false
+        print("Menu Shown - Logo Hidden")
+        
+        -- ***CRITICAL FIX for "Idhar udhar ہو ja raha hai"***
+        -- Force re-center MainFrame on reshow to fix positioning issues
+        MainFrame.Position = UDim2.new(0.5, -100, 0.5, -150)
+    end
 end
 
-local MainPage = CreateTab("MAIN", 1)
-local VisualPage = CreateTab("VISUALS", 2)
+-- Connect Logo Click to Toggle
+LogoButton.MouseButton1Click:Connect(ToggleMenu)
 
--- --- BUTTON CREATOR ---
-local function AddToggle(parent, text, varName)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.95, 0, 0, 35)
-    btn.Text = text .. ": OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- --- 5. FUNCTION TO CREATE TOGGLE BUTTONS ---
+local function CreateToggleButton(text, varName, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    
+    -- Function to update button state visuals
+    local function updateVisuals()
+        local isOn = _G[varName]
+        btn.Text = text .. (isOn and ": ON" or ": OFF")
+        btn.BackgroundColor3 = isOn and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(30, 30, 30)
+    end
+    updateVisuals() -- Initial set
+
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.Gotham
     btn.TextSize = 13
     Instance.new("UICorner", btn)
 
     btn.MouseButton1Click:Connect(function()
-        _G[varName] = not _G[varName]
-        btn.Text = text .. (_G[varName] and ": ON" or ": OFF")
-        btn.TextColor3 = _G[varName] and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(255, 255, 255)
+        _G[varName] = not _G[varName] -- Toggle variable
+        updateVisuals() -- Update visuals
+        if callback then callback() end -- Optional callback
     end)
 end
 
--- Add Features to Tabs
-AddToggle(MainPage, "Enable Aimbot", "Aimbot")
-AddToggle(VisualPage, "Box ESP", "ESP_Box")
-AddToggle(VisualPage, "Name ESP", "ESP_Name")
-AddToggle(VisualPage, "Health ESP", "ESP_Health")
+-- --- 6. HIDE MENU BUTTON CREATOR ---
+local function CreateHideButton()
+    local hBtn = Instance.new("TextButton", MainFrame)
+    hBtn.Size = UDim2.new(0.9, 0, 0, 35)
+    hBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    hBtn.Text = "HIDE MENU"
+    hBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    hBtn.Font = Enum.Font.GothamBold
+    hBtn.TextSize = 13
+    Instance.new("UICorner", hBtn)
+    
+    local hStroke = Instance.new("UIStroke", hBtn)
+    hStroke.Color = Color3.fromRGB(255, 0, 0) -- Red outline for Hide
+    hStroke.Thickness = 1.5
 
--- Close Button
-local Close = Instance.new("TextButton", MainFrame)
-Close.Size = UDim2.new(0, 30, 0, 30)
-Close.Position = UDim2.new(1, -35, 0, 5)
-Close.Text = "X"
-Close.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-Close.TextColor3 = Color3.fromRGB(255, 255, 255)
-Instance.new("UICorner", Close)
-Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+    hBtn.MouseButton1Click:Connect(ToggleMenu)
+end
 
--- --- LOGIC (Fixed Wall Check & Switching) ---
+-- --- 7. CREATE MENU ELEMENTS ---
+CreateToggleButton("AIMBOT", "Aimbot")
+CreateToggleButton("ESP BOX (Wallhack)", "ESP")
+CreateHideButton()
+
+-- --- 8. FOV CIRCLE DRAWING ---
+local fov = Drawing.new("Circle")
+fov.Visible = false
+fov.Thickness = 1
+fov.Color = Color3.fromRGB(0, 255, 127)
+fov.Transparency = 1
+fov.Radius = _G.FOV
+fov.Filled = false
+
+-- --- 9. COMPLEX AIMBOT LOGIC (SMOOTH + DYNAMIC SWITCH + VISCHECK) ---
 local function IsVisible(part)
     local origin = Camera.CFrame.Position
-    local ray = RaycastParams.new()
-    ray.FilterType = Enum.RaycastFilterType.Exclude
-    ray.FilterDescendantsInstances = {Players.LocalPlayer.Character, part.Parent}
-    local res = workspace:Raycast(origin, part.Position - origin, ray)
+    local rayparams = RaycastParams.new()
+    rayparams.FilterType = Enum.RaycastFilterType.Exclude
+    rayparams.FilterDescendantsInstances = {Players.LocalPlayer.Character, part.Parent}
+    
+    local res = workspace:Raycast(origin, part.Position - origin, rayparams)
     return res == nil
 end
 
 local function GetClosest()
-    local target, dist = nil, _G.FOV
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
-            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
-            if onScreen then
-                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mag < dist and IsVisible(v.Character.Head) then
-                    dist = mag; target = v
+    local closestTarget = nil
+    local maxDist = _G.FOV
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character.Humanoid.Health > 0 then
+            local head = player.Character.Head
+            local pos, screenPos = Camera:WorldToViewportPoint(head.Position)
+            
+            if screenPos then
+                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                
+                -- Check dynamic SWITCHING distance AND visibility
+                if dist < maxDist and IsVisible(head) then
+                    maxDist = dist
+                    closestTarget = player
                 end
             end
         end
     end
-    return target
+    return closestTarget
 end
 
--- --- RENDER LOOP ---
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5; FOVCircle.Color = Color3.fromRGB(0, 255, 127); FOVCircle.Filled = false
+-- --- 10. ESP LOGIC (WALLHACK BOX + NAME + HP) ---
+local function ApplyESP(player)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        local char = player.Character
+        local hum = char.Humanoid
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
 
+        -- ESP Billboard Gui
+        local bill = hrp:FindFirstChild("AbhishekESP") or Instance.new("BillboardGui", hrp)
+        bill.Name = "AbhishekESP"
+        bill.Size = UDim2.new(0, 200, 0, 50)
+        bill.AlwaysOnTop = true
+        bill.ExtentsOffset = Vector3.new(0, 3, 0)
+        bill.Enabled = _G.ESP
+
+        local label = bill:FindFirstChild("Label") or Instance.new("TextLabel", bill)
+        label.Name = "Label"
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 11
+
+        local d = math.floor((head.Position - workspace.CurrentCamera.CFrame.Position).Magnitude)
+        l.Text = p.Name .. " | " .. hp .. "HP | " .. d .. "m"
+
+        -- ESP Box/Highlight
+        local highlight = char:FindFirstChild("ESP_Highlight") or Instance.new("Highlight", char)
+        highlight.Name = "ESP_Highlight"
+        highlight.FillTransparency = 1 -- Transparent fill for just outline box
+        highlight.OutlineColor = Color3.fromRGB(0, 255, 127) -- Matching Green
+        highlight.Adornee = char
+        highlight.Enabled = _G.ESP
+    end
+end
+
+-- --- 11. MAIN RENDER LOOP ---
 RunService.RenderStepped:Connect(function()
-    FOVCircle.Visible = _G.Aimbot
-    FOVCircle.Radius = _G.FOV
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-
+    -- FOV circle update
+    fov.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    fov.Visible = _G.Aimbot
+    
+    -- Aimbot update
     if _G.Aimbot then
-        local t = GetClosest()
-        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character.Head.Position), _G.Smoothness) end
+        local target = GetClosest()
+        if target and target.Character:FindFirstChild("Head") then
+            -- Smooth dynamic lock logic fixsticky issues
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character.Head.Position), _G.Smoothness)
+        end
     end
 
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= Players.LocalPlayer and p.Character then
-            local h = p.Character:FindFirstChild("AB_H") or Instance.new("Highlight", p.Character)
-            h.Enabled = _G.ESP_Box; h.FillColor = Color3.fromRGB(0, 255, 127)
-            local head = p.Character:FindFirstChild("Head")
-            if head then
-                local b = head:FindFirstChild("AB_B") or Instance.new("BillboardGui", head)
-                b.AlwaysOnTop = true; b.Size = UDim2.new(0, 100, 0, 40); b.ExtentsOffset = Vector3.new(0, 2, 0)
-                local l = b:FindFirstChild("L") or Instance.new("TextLabel", b)
-                l.BackgroundTransparency = 1; l.Size = UDim2.new(1,0,1,0); l.TextColor3 = Color3.fromRGB(255, 255, 255); l.Font = Enum.Font.GothamBold; l.TextSize = 10
-                local txt = ""
-                if _G.ESP_Name then txt = txt .. p.Name .. "\n" end
-                if _G.ESP_Health then txt = txt .. math.floor(p.Character.Humanoid.Health) .. " HP" end
-                l.Text = txt; l.Visible = (_G.ESP_Name or _G.ESP_Health)
-            end
+    -- ESP update for standard Roblox structure in complex games
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer then
+            ApplyESP(player)
         end
     end
 end)
