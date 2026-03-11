@@ -1,216 +1,224 @@
---// ================= DEBUG SYSTEM =================
-local DEBUG = true
-local function log(msg)
-    if DEBUG then
-        print("[ABHISHEK DEBUG]: "..msg)
-    end
-end
-
-log("Script Started")
-
---// ================= LOADER UI =================
-local CoreGui = game:GetService("CoreGui")
-
-local Loader = Instance.new("ScreenGui", CoreGui)
-Loader.Name = "AbhishekLoader"
-
-local LFrame = Instance.new("Frame", Loader)
-LFrame.Size = UDim2.new(0,220,0,80)
-LFrame.Position = UDim2.new(0.5,-110,0.5,-40)
-LFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-Instance.new("UICorner", LFrame)
-
-local LStroke = Instance.new("UIStroke", LFrame)
-LStroke.Color = Color3.fromRGB(0,255,140)
-
-local LText = Instance.new("TextLabel", LFrame)
-LText.Size = UDim2.new(1,0,1,0)
-LText.BackgroundTransparency = 1
-LText.Font = Enum.Font.GothamBold
-LText.TextSize = 16
-LText.TextColor3 = Color3.fromRGB(0,255,140)
-LText.Text = "Loading Script..."
-
-task.spawn(function()
-    while Loader.Parent do
-        LText.Text = "Loading Script."
-        task.wait(0.4)
-        LText.Text = "Loading Script.."
-        task.wait(0.4)
-        LText.Text = "Loading Script..."
-        task.wait(0.4)
-    end
-end)
-
---// ================= ERROR CATCH =================
-local success, err = pcall(function()
-
-log("Services Loading")
-
+-- SERVICES
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
 
-log("Services Loaded")
+-- GUI
+local Gui = Instance.new("ScreenGui", CoreGui)
+Gui.Name = "GodUIFramework"
 
--- SETTINGS
-_G.Aimbot = false
-_G.ESP_Box = false
-_G.ESP_Name = false
-_G.ESP_Health = false
-_G.FOV = 150
-
--- ================= UI =================
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "AbhishekUltra"
-
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0,300,0,380)
-Main.Position = UDim2.new(0.03,-400,0.2,0)
-Main.BackgroundColor3 = Color3.fromRGB(15,15,15)
+-- MAIN
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.new(0,420,0,420)
+Main.Position = UDim2.new(0.3,0,0.2,0)
+Main.BackgroundColor3 = Color3.fromRGB(20,20,20)
 Main.Active = true
 Main.Draggable = true
 Instance.new("UICorner", Main)
 
 local Stroke = Instance.new("UIStroke", Main)
-Stroke.Color = Color3.fromRGB(0,255,140)
+Stroke.Color = Color3.fromRGB(0,255,170)
 
+-- HEADER
 local Header = Instance.new("TextLabel", Main)
-Header.Size = UDim2.new(1,0,0,45)
-Header.Text = "ABHISHEK ULTRA"
+Header.Size = UDim2.new(1,0,0,50)
+Header.Text = "GOD UI PANEL"
 Header.Font = Enum.Font.GothamBold
-Header.TextSize = 20
-Header.TextColor3 = Color3.fromRGB(0,255,140)
+Header.TextSize = 22
+Header.TextColor3 = Color3.fromRGB(0,255,170)
 Header.BackgroundTransparency = 1
 
-local AimPage = Instance.new("Frame", Main)
-AimPage.Size = UDim2.new(1,0,1,-60)
-AimPage.Position = UDim2.new(0,0,0,60)
-AimPage.BackgroundTransparency = 1
+-- HOTKEY
+UIS.InputBegan:Connect(function(i,g)
+    if not g and i.KeyCode == Enum.KeyCode.RightShift then
+        Main.Visible = not Main.Visible
+    end
+end)
 
-local Layout = Instance.new("UIListLayout", AimPage)
-Layout.Padding = UDim.new(0,8)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+-- TAB HOLDER
+local Tabs = Instance.new("Frame", Main)
+Tabs.Size = UDim2.new(1,0,0,40)
+Tabs.Position = UDim2.new(0,0,0,50)
+Tabs.BackgroundTransparency = 1
 
--- TOGGLE
-local function Toggle(text,callback)
-    local Frame = Instance.new("TextButton", AimPage)
-    Frame.Size = UDim2.new(0.9,0,0,40)
-    Frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    Frame.Text = text.." : OFF"
-    Frame.TextColor3 = Color3.new(1,1,1)
-    Frame.Font = Enum.Font.GothamBold
-    Frame.TextSize = 14
-    Instance.new("UICorner", Frame)
+local TabLayout = Instance.new("UIListLayout", Tabs)
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+TabLayout.Padding = UDim.new(0,8)
+
+-- PAGE HOLDER
+local Pages = Instance.new("Frame", Main)
+Pages.Size = UDim2.new(1,0,1,-90)
+Pages.Position = UDim2.new(0,0,0,90)
+Pages.BackgroundTransparency = 1
+
+-- TAB SYSTEM
+local PageList = {}
+
+local function CreateTab(name)
+    local Page = Instance.new("Frame", Pages)
+    Page.Size = UDim2.new(1,0,1,0)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+
+    local Layout = Instance.new("UIListLayout", Page)
+    Layout.Padding = UDim.new(0,8)
+    Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+    local Btn = Instance.new("TextButton", Tabs)
+    Btn.Size = UDim2.new(0,110,0,30)
+    Btn.Text = name
+    Btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    Btn.TextColor3 = Color3.new(1,1,1)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Instance.new("UICorner", Btn)
+
+    Btn.MouseButton1Click:Connect(function()
+        for _,p in pairs(PageList) do
+            p.Visible = false
+        end
+        Page.Visible = true
+    end)
+
+    table.insert(PageList, Page)
+    return Page
+end
+
+-- CONTROLS
+local function Toggle(parent,text,callback)
+    local Btn = Instance.new("TextButton", parent)
+    Btn.Size = UDim2.new(0.9,0,0,40)
+    Btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Btn.Text = text.." : OFF"
+    Btn.TextColor3 = Color3.new(1,1,1)
+    Btn.Font = Enum.Font.GothamBold
+    Btn.TextSize = 14
+    Instance.new("UICorner", Btn)
 
     local state=false
-    Frame.MouseButton1Click:Connect(function()
-        state=not state
+    Btn.MouseButton1Click:Connect(function()
+        state = not state
+        Btn.Text = text.." : "..(state and "ON" or "OFF")
+        Btn.BackgroundColor3 = state and Color3.fromRGB(0,170,120) or Color3.fromRGB(35,35,35)
         callback(state)
-        Frame.Text = text.." : "..(state and "ON" or "OFF")
-        Frame.BackgroundColor3 = state and Color3.fromRGB(0,170,100) or Color3.fromRGB(30,30,30)
     end)
 end
 
-Toggle("Aimbot",function(v) _G.Aimbot=v end)
-Toggle("ESP Box",function(v) _G.ESP_Box=v end)
-Toggle("ESP Name",function(v) _G.ESP_Name=v end)
-Toggle("ESP Health",function(v) _G.ESP_Health=v end)
+local function Slider(parent,text,min,max,callback)
+    local Holder = Instance.new("Frame", parent)
+    Holder.Size = UDim2.new(0.9,0,0,50)
+    Holder.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Instance.new("UICorner", Holder)
 
--- FOV BUTTON
-local FovBtn = Instance.new("TextButton", AimPage)
-FovBtn.Size = UDim2.new(0.9,0,0,40)
-FovBtn.Text = "FOV : ".._G.FOV
-FovBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-FovBtn.TextColor3 = Color3.new(1,1,1)
-FovBtn.Font = Enum.Font.GothamBold
-FovBtn.TextSize = 14
-Instance.new("UICorner", FovBtn)
+    local Label = Instance.new("TextLabel", Holder)
+    Label.Size = UDim2.new(1,0,0.5,0)
+    Label.BackgroundTransparency = 1
+    Label.TextColor3 = Color3.new(1,1,1)
+    Label.Font = Enum.Font.GothamBold
+    Label.Text = text.." : "..min
 
-FovBtn.MouseButton1Click:Connect(function()
-    if _G.FOV >= 400 then
-        _G.FOV = 100
-    else
-        _G.FOV += 50
-    end
-    FovBtn.Text = "FOV : ".._G.FOV
-end)
+    local Bar = Instance.new("Frame", Holder)
+    Bar.Size = UDim2.new(0.9,0,0,6)
+    Bar.Position = UDim2.new(0.05,0,0.65,0)
+    Bar.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    Instance.new("UICorner", Bar)
 
-TweenService:Create(Main,TweenInfo.new(0.4),{
-    Position = UDim2.new(0.03,0,0.2,0)
-}):Play()
+    local Fill = Instance.new("Frame", Bar)
+    Fill.Size = UDim2.new(0,0,1,0)
+    Fill.BackgroundColor3 = Color3.fromRGB(0,255,170)
+    Instance.new("UICorner", Fill)
 
-task.wait(1)
-Loader:Destroy()
-
-log("UI Loaded")
-
--- ================= AIMBOT =================
-local function IsVisible(part)
-    local char = Players.LocalPlayer.Character
-    if not char then return false end
-
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {char, part.Parent}
-
-    local origin = Camera.CFrame.Position
-    local direction = (part.Position - origin)
-
-    local result = workspace:Raycast(origin,direction,params)
-    return result == nil
-end
-
-local function GetClosest()
-    local target=nil
-    local dist=_G.FOV
-
-    for _,v in pairs(Players:GetPlayers()) do
-        if v~=Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-            local pos,vis = Camera:WorldToViewportPoint(v.Character.Head.Position)
-            if vis then
-                local mag = (Vector2.new(pos.X,pos.Y) - Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
-                if mag < dist and IsVisible(v.Character.Head) then
-                    dist=mag
-                    target=v
+    Bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local move
+            move = UIS.InputChanged:Connect(function(i)
+                if i.UserInputType == Enum.UserInputType.MouseMovement then
+                    local pos = math.clamp((i.Position.X-Bar.AbsolutePosition.X)/Bar.AbsoluteSize.X,0,1)
+                    Fill.Size = UDim2.new(pos,0,1,0)
+                    local val = math.floor(min + (max-min)*pos)
+                    Label.Text = text.." : "..val
+                    callback(val)
                 end
+            end)
+            UIS.InputEnded:Wait()
+            move:Disconnect()
+        end
+    end)
+end
+
+local function Dropdown(parent,text,options,callback)
+    local Btn = Instance.new("TextButton", parent)
+    Btn.Size = UDim2.new(0.9,0,0,40)
+    Btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+    Btn.Text = text
+    Btn.TextColor3 = Color3.new(1,1,1)
+    Btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", Btn)
+
+    Btn.MouseButton1Click:Connect(function()
+        local choice = options[math.random(1,#options)]
+        Btn.Text = text.." : "..choice
+        callback(choice)
+    end)
+end
+
+-- NOTIFICATION
+local function Notify(msg)
+    local N = Instance.new("TextLabel", Gui)
+    N.Size = UDim2.new(0,260,0,50)
+    N.Position = UDim2.new(0.5,-130,0.1,0)
+    N.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    N.TextColor3 = Color3.fromRGB(0,255,170)
+    N.Font = Enum.Font.GothamBold
+    N.TextSize = 16
+    N.Text = msg
+    Instance.new("UICorner", N)
+
+    TweenService:Create(N,TweenInfo.new(0.4),{Position=UDim2.new(0.5,-130,0.15,0)}):Play()
+    task.wait(2)
+    N:Destroy()
+end
+
+-- PAGES CREATE
+local Settings = CreateTab("SETTINGS")
+local Player = CreateTab("PLAYER")
+local Visual = CreateTab("VISUAL")
+
+Settings.Visible = true
+
+-- EXAMPLE CONTROLS
+Toggle(Settings,"Music",function(v) Notify("Music "..tostring(v)) end)
+Slider(Settings,"Volume",0,100,function(v) end)
+Dropdown(Settings,"Graphics",{"Low","Medium","High"},function(v) end)
+
+Toggle(Player,"Sprint",function(v) end)
+Slider(Player,"WalkSpeed",16,100,function(v)
+    local char = Players.LocalPlayer.Character
+    if char then
+        char.Humanoid.WalkSpeed = v
+    end
+end)
+
+Toggle(Visual,"Show Names",function(v) end)
+
+-- RESIZE CORNER
+local Resize = Instance.new("Frame", Main)
+Resize.Size = UDim2.new(0,20,0,20)
+Resize.Position = UDim2.new(1,-20,1,-20)
+Resize.BackgroundColor3 = Color3.fromRGB(0,255,170)
+
+Resize.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local move
+        move = UIS.InputChanged:Connect(function(inp)
+            if inp.UserInputType == Enum.UserInputType.MouseMovement then
+                Main.Size = UDim2.new(0,inp.Position.X-Main.AbsolutePosition.X,
+                                      0,inp.Position.Y-Main.AbsolutePosition.Y)
             end
-        end
-    end
-
-    return target
-end
-
-RunService.RenderStepped:Connect(function()
-    if _G.Aimbot then
-        local t = GetClosest()
-        if t then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position,t.Character.Head.Position)
-        end
+        end)
+        UIS.InputEnded:Wait()
+        move:Disconnect()
     end
 end)
-
-log("Script Fully Loaded")
-
-end)
-
-if not success then
-    warn("SCRIPT ERROR:",err)
-
-    local ErrorGui = Instance.new("ScreenGui", CoreGui)
-    local Frame = Instance.new("Frame", ErrorGui)
-    Frame.Size = UDim2.new(0,300,0,100)
-    Frame.Position = UDim2.new(0.5,-150,0.5,-50)
-    Frame.BackgroundColor3 = Color3.fromRGB(60,0,0)
-    Instance.new("UICorner", Frame)
-
-    local Text = Instance.new("TextLabel", Frame)
-    Text.Size = UDim2.new(1,0,1,0)
-    Text.BackgroundTransparency = 1
-    Text.TextColor3 = Color3.new(1,1,1)
-    Text.Font = Enum.Font.GothamBold
-    Text.TextSize = 14
-    Text.Text = "SCRIPT ERROR\n"..err
-end
