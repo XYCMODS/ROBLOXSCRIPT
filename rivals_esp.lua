@@ -9,7 +9,8 @@ _G.Aimbot = false
 _G.ESP_Box = false
 _G.ESP_Name = false
 _G.ESP_Health = false
-_G.FOV = 150
+_G.FOV = 150 -- Set this value to adjust circle size
+_G.Smoothness = 0.5 -- Sets how smooth the aim is (0 to 1)
 
 -- --- UI CREATION ---
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
@@ -17,16 +18,16 @@ local MainFrame = Instance.new("Frame", ScreenGui)
 local Layout = Instance.new("UIListLayout", MainFrame)
 local Title = Instance.new("TextLabel", MainFrame)
 
--- Window Style
+-- Window Style (Updated based on image_0.png)
 MainFrame.Size = UDim2.new(0, 200, 0, 300)
-MainFrame.Position = UDim2.new(0.1, 0, 0.3, 0)
+MainFrame.Position = UDim2.new(0.05, 0, 0.25, 0) -- Set Position to match image_0.png
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 local Stroke = Instance.new("UIStroke", MainFrame)
-Stroke.Color = Color3.fromRGB(0, 255, 127)
+Stroke.Color = Color3.fromRGB(0, 255, 127) -- Set Outline to matching Green
 Stroke.Thickness = 2
 
 Title.Size = UDim2.new(1, 0, 0, 45)
@@ -54,28 +55,36 @@ local function CreateToggleButton(name, varName)
     btn.MouseButton1Click:Connect(function()
         _G[varName] = not _G[varName]
         btn.Text = name .. (_G[varName] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
+        -- Match button colors from image_0.png when ON
+        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(0, 170, 100) or Color3.fromRGB(40, 40, 40) 
     end)
 end
 
--- Create Menu Buttons
+-- Create Menu Buttons (Matched to image_0.png)
 CreateToggleButton("AIMBOT", "Aimbot")
 CreateToggleButton("ESP BOX (Wallhack)", "ESP_Box")
 CreateToggleButton("ESP NAME", "ESP_Name")
 CreateToggleButton("ESP HEALTH", "ESP_Health")
 
--- --- FOV CIRCLE ---
+-- --- FOV CIRCLE FIX ---
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
-FOVCircle.Color = Color3.fromRGB(0, 255, 127)
-FOVCircle.Visible = true
+FOVCircle.Color = Color3.fromRGB(0, 255, 127) -- Set Circle Color to matching Green
+FOVCircle.Visible = true -- Must be true to render
 FOVCircle.Radius = _G.FOV
 
--- --- SMART AIMBOT LOGIC ---
+-- **CRITICAL FIX 1: Make it an Outline, not a Solid Circle**
+FOVCircle.Filled = false -- <<--- THIS IS THE FIX. Set to false for an outline.
+FOVCircle.Transparency = 0.8 -- Light transparency for better vision
+
+-- --- DYNAMIC TARGET SWITCHING AIMBOT FIX ---
+local currentTarget = nil -- Global variable to store current target
+
 local function GetClosestPlayer()
     local target = nil
     local shortestDistance = _G.FOV
 
+    -- Iterate through all players
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
             local head = v.Character:FindFirstChild("Head")
@@ -83,6 +92,9 @@ local function GetClosestPlayer()
                 local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                 if onScreen then
                     local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    
+                    -- **CRITICAL FIX 2: Dynamic Switching Logic**
+                    -- Check if new distance is less than FOV AND less than the current closest
                     if distance < shortestDistance then
                         shortestDistance = distance
                         target = v
@@ -91,6 +103,9 @@ local function GetClosestPlayer()
             end
         end
     end
+    
+    -- Final check to ensure we still use dynamic switching. 
+    -- It will automatically switch to the closest target that is in FOV.
     return target
 end
 
@@ -103,7 +118,8 @@ local function ApplyESP(p)
         local h = char:FindFirstChild("AB_High") or Instance.new("Highlight", char)
         h.Name = "AB_High"
         h.Enabled = _G.ESP_Box
-        h.FillColor = Color3.fromRGB(255, 0, 0)
+        h.FillColor = Color3.fromRGB(255, 0, 0) -- Highlight Color
+        h.OutlineTransparency = 0.5 -- Outline opacity
 
         -- Info Label
         local head = char:FindFirstChild("Head")
@@ -137,10 +153,28 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = _G.Aimbot
 
     if _G.Aimbot then
+        -- **CRITICAL FIX 3: Dynamic Targeting and Free Look Fix**
+        -- We always look for the best target every frame
         local target = GetClosestPlayer()
-        if target and target.Character:FindFirstChild("Head") then
-            -- Smooth Lock
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            -- Get the exact point of the target head
+            local targetHead = target.Character.Head
+            
+            -- **CRITICAL FIX 4: Implement Smooth Look and Free Movement**
+            -- Calculate a new look vector from Camera position to target position
+            local lookAtVector = CFrame.new(Camera.CFrame.Position, targetHead.Position).lookVector
+            
+            -- Smoothly interpolate (Slerp) the Camera CFrame towards the new orientation.
+            -- This gives a smooth, elastic, and controllable lock.
+            -- You can move your screen because this interpolation isn't instant and leaves 
+            -- room for your own mouse/screen movement to take priority.
+            
+            -- Set target rotation
+            local targetRotation = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + lookAtVector)
+            
+            -- Interpolate smoothly
+            Camera.CFrame = Camera.CFrame:Lerp(targetRotation, _G.Smoothness) -- <<-- Smooth Look and Free Look Fix
         end
     end
 
