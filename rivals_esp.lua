@@ -1,122 +1,149 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Lib/UI-Library/main/Source.lua"))()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
 -- Variables
-_G.AimbotEnabled = false
-_G.ESPEnabled = false
+_G.Aimbot = false
+_G.ESP = false
 _G.FOV = 150
-_G.Smoothness = 0.2
 
--- UI Setup
-local Window = Library:CreateWindow("ABHISHEK MOD", "Rivals Pro", "https://i.supaimg.com/8b0f695c-2b86-4162-bacc-ed123dddbfa7/4ee53c99-1d32-4298-aebd-fea26915d594.png")
+-- UI Creation
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+local UICorner = Instance.new("UICorner", MainFrame)
+local UIStroke = Instance.new("UIStroke", MainFrame)
+local ImageLabel = Instance.new("ImageLabel", MainFrame)
+local Title = Instance.new("TextLabel", MainFrame)
 
-local MainTab = Window:CreateTab("Main Features")
+-- Window Design
+MainFrame.Size = UDim2.new(0, 220, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- Aimbot Section
-MainTab:CreateToggle("Enable Aimbot", function(state)
-    _G.AimbotEnabled = state
-end)
+UICorner.CornerRadius = UDim.new(0, 15)
+UIStroke.Color = Color3.fromRGB(0, 255, 150)
+UIStroke.Thickness = 2
 
-MainTab:CreateSlider("FOV Size", 50, 500, 150, function(value)
-    _G.FOV = value
-end)
+-- User Image
+ImageLabel.Size = UDim2.new(0, 60, 0, 60)
+ImageLabel.Position = UDim2.new(0.5, -30, 0.05, 0)
+ImageLabel.Image = "rbxassetid://18635887222" -- Default ID or direct link support needs special handling in Roblox, using proxy
+ImageLabel.BackgroundTransparency = 1
+-- Note: Direct external URLs sometimes need a proxy, setting up the layout first
 
--- ESP Section
-MainTab:CreateToggle("Enable Full ESP", function(state)
-    _G.ESPEnabled = state
-end)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Position = UDim2.new(0, 0, 0.25, 0)
+Title.Text = "ABHISHEK MOD"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.BackgroundTransparency = 1
 
--- FOV Circle Drawing
+-- Button Generator Function
+local function CreateButton(name, pos, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.8, 0, 0, 35)
+    btn.Position = pos
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    
+    btn.MouseButton1Click:Connect(function()
+        callback(btn)
+    end)
+end
+
+-- FOV Circle
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5
-FOVCircle.Color = Color3.fromRGB(0, 255, 127)
-FOVCircle.Transparency = 0.7
-FOVCircle.Filled = false
+FOVCircle.Thickness = 2
+FOVCircle.Color = Color3.fromRGB(0, 255, 150)
+FOVCircle.Visible = false
+FOVCircle.NumSides = 64
 
--- Aimbot Logic (Smooth Lock)
-local function GetClosestPlayer()
-    local target = nil
-    local dist = _G.FOV
-    for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-            local pos, screen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if screen then
-                local mouseDist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mouseDist < dist then
-                    dist = mouseDist
-                    target = v
-                end
-            end
-        end
-    end
-    return target
-end
-
--- ESP Rendering (Box, Name, Health, Line)
-local function ApplyESP(p)
-    if not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local char = p.Character
-    local hrp = char.HumanoidRootPart
-    
-    -- Highlight for Wallhack
-    local highlight = char:FindFirstChild("AB_Highlight") or Instance.new("Highlight", char)
-    highlight.Name = "AB_Highlight"
-    highlight.Enabled = _G.ESPEnabled
-    highlight.FillColor = Color3.fromRGB(255, 0, 50)
-    
-    -- Info Billboard (Name, Health, Distance)
-    local head = char:FindFirstChild("Head")
-    if head then
-        local billboard = head:FindFirstChild("AB_Info") or Instance.new("BillboardGui", head)
-        billboard.Name = "AB_Info"
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(0, 100, 0, 50)
-        billboard.ExtentsOffset = Vector3.new(0, 3, 0)
-        
-        local label = billboard:FindFirstChild("Label") or Instance.new("TextLabel", billboard)
-        label.Name = "Label"
-        label.BackgroundTransparency = 1
-        label.Size = UDim2.new(1,0,1,0)
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.Font = Enum.Font.GothamBold
-        label.TextSize = 12
-        label.Visible = _G.ESPEnabled
-        
-        local hp = math.floor(char.Humanoid.Health)
-        local d = math.floor((hrp.Position - Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-        label.Text = string.format("%s\nHP: %d | %s m", p.Name, hp, d)
-    end
-end
-
--- Render Loop
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    FOVCircle.Radius = _G.FOV
-    FOVCircle.Visible = _G.AimbotEnabled
-
-    if _G.AimbotEnabled then
-        local target = GetClosestPlayer()
-        if target then
-            local targetPos = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
-            mousemoverel((targetPos.X - Camera.ViewportSize.X/2) * _G.Smoothness, (targetPos.Y - Camera.ViewportSize.Y/2) * _G.Smoothness)
-        end
-    end
-
-    if _G.ESPEnabled then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= Players.LocalPlayer then ApplyESP(p) end
-        end
-    end
+-- Features
+CreateButton("ESP: OFF", UDim2.new(0.1, 0, 0.4, 0), function(btn)
+    _G.ESP = not _G.ESP
+    btn.Text = _G.ESP and "ESP: ON" or "ESP: OFF"
+    btn.BackgroundColor3 = _G.ESP and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(35, 35, 35)
 end)
 
--- Hide/Close Button (Right Control or UI Button)
-MainTab:CreateButton("Destroy Menu", function()
+CreateButton("AIMBOT: OFF", UDim2.new(0.1, 0, 0.55, 0), function(btn)
+    _G.Aimbot = not _G.Aimbot
+    FOVCircle.Visible = _G.Aimbot
+    btn.Text = _G.Aimbot and "AIMBOT: ON" or "AIMBOT: OFF"
+    btn.BackgroundColor3 = _G.Aimbot and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(35, 35, 35)
+end)
+
+CreateButton("CLOSE MENU", UDim2.new(0.1, 0, 0.85, 0), function()
     ScreenGui:Destroy()
     FOVCircle:Remove()
 end)
 
-Library:Notify("ABHISHEK MOD Loaded", "Happy Cheating!", 3)
+-- Aimbot Logic
+local function GetTarget()
+    local closest = nil
+    local dist = _G.FOV
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if onScreen then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then
+                    dist = mag
+                    closest = v
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- ESP logic
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    FOVCircle.Radius = _G.FOV
+    
+    if _G.Aimbot then
+        local target = GetTarget()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Players.LocalPlayer and p.Character then
+            local char = p.Character
+            local h = char:FindFirstChild("AB_High") or Instance.new("Highlight", char)
+            h.Name = "AB_High"
+            h.Enabled = _G.ESP
+            h.FillColor = Color3.fromRGB(0, 255, 150)
+            
+            local head = char:FindFirstChild("Head")
+            if head then
+                local bill = head:FindFirstChild("AB_Label") or Instance.new("BillboardGui", head)
+                bill.Name = "AB_Label"
+                bill.Size = UDim2.new(0, 100, 0, 40)
+                bill.AlwaysOnTop = true
+                bill.ExtentsOffset = Vector3.new(0, 2, 0)
+                
+                local txt = bill:FindFirstChild("Txt") or Instance.new("TextLabel", bill)
+                txt.Name = "Txt"
+                txt.BackgroundTransparency = 1
+                txt.Size = UDim2.new(1, 0, 1, 0)
+                txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+                txt.TextSize = 10
+                txt.Font = Enum.Font.GothamBold
+                txt.Visible = _G.ESP
+                
+                local dist = math.floor((head.Position - Camera.CFrame.Position).Magnitude)
+                txt.Text = p.Name .. " | " .. math.floor(char.Humanoid.Health) .. "HP\n" .. dist .. "m"
+            end
+        end
+    end
+end)
