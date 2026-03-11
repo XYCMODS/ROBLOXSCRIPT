@@ -1,72 +1,52 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Lib/UI-Library/main/Source.lua"))()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 
--- --- SETTINGS ---
-_G.Aimbot = false
-_G.ESP = false
+-- Variables
+_G.AimbotEnabled = false
+_G.ESPEnabled = false
 _G.FOV = 150
+_G.Smoothness = 0.2
 
--- --- UI CREATION ---
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-local Title = Instance.new("TextLabel", MainFrame)
-local ToggleESP = Instance.new("TextButton", MainFrame)
-local ToggleAimbot = Instance.new("TextButton", MainFrame)
+-- UI Setup
+local Window = Library:CreateWindow("ABHISHEK MOD", "Rivals Pro", "https://i.supaimg.com/8b0f695c-2b86-4162-bacc-ed123dddbfa7/4ee53c99-1d32-4298-aebd-fea26915d594.png")
 
--- Frame Style
-MainFrame.Size = UDim2.new(0, 200, 0, 250)
-MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true -- Mobile friendly drag
+local MainTab = Window:CreateTab("Main Features")
 
-local Corner = Instance.new("UICorner", MainFrame)
-Corner.CornerRadius = UDim.new(0, 10)
+-- Aimbot Section
+MainTab:CreateToggle("Enable Aimbot", function(state)
+    _G.AimbotEnabled = state
+end)
 
--- Title: ABHISHEK MOD
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "ABHISHEK MOD"
-Title.TextColor3 = Color3.fromRGB(0, 255, 127)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+MainTab:CreateSlider("FOV Size", 50, 500, 150, function(value)
+    _G.FOV = value
+end)
 
--- ESP Button
-ToggleESP.Size = UDim2.new(0.8, 0, 0, 40)
-ToggleESP.Position = UDim2.new(0.1, 0, 0.3, 0)
-ToggleESP.Text = "ESP: OFF"
-ToggleESP.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleESP.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- ESP Section
+MainTab:CreateToggle("Enable Full ESP", function(state)
+    _G.ESPEnabled = state
+end)
 
--- Aimbot Button
-ToggleAimbot.Size = UDim2.new(0.8, 0, 0, 40)
-ToggleAimbot.Position = UDim2.new(0.1, 0, 0.55, 0)
-ToggleAimbot.Text = "AIMBOT: OFF"
-ToggleAimbot.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleAimbot.TextColor3 = Color3.fromRGB(255, 255, 255)
-
--- --- FOV CIRCLE ---
+-- FOV Circle Drawing
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
-FOVCircle.Color = Color3.fromRGB(255, 255, 255)
+FOVCircle.Thickness = 1.5
+FOVCircle.Color = Color3.fromRGB(0, 255, 127)
+FOVCircle.Transparency = 0.7
 FOVCircle.Filled = false
-FOVCircle.Radius = _G.FOV
-FOVCircle.Visible = true
 
--- --- AIMBOT LOGIC ---
+-- Aimbot Logic (Smooth Lock)
 local function GetClosestPlayer()
-    local closestDist = _G.FOV
     local target = nil
+    local dist = _G.FOV
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if dist < closestDist then
-                    closestDist = dist
+        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
+            local pos, screen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if screen then
+                local mouseDist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mouseDist < dist then
+                    dist = mouseDist
                     target = v
                 end
             end
@@ -75,61 +55,68 @@ local function GetClosestPlayer()
     return target
 end
 
--- --- ESP LOGIC (Highlight + Info) ---
+-- ESP Rendering (Box, Name, Health, Line)
 local function ApplyESP(p)
-    if p.Character then
-        -- Highlight (Walls ke paar dekhne ke liye)
-        local h = p.Character:FindFirstChild("Highlight") or Instance.new("Highlight", p.Character)
-        h.Enabled = _G.ESP
-        h.FillColor = Color3.fromRGB(255, 0, 0)
+    if not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local char = p.Character
+    local hrp = char.HumanoidRootPart
+    
+    -- Highlight for Wallhack
+    local highlight = char:FindFirstChild("AB_Highlight") or Instance.new("Highlight", char)
+    highlight.Name = "AB_Highlight"
+    highlight.Enabled = _G.ESPEnabled
+    highlight.FillColor = Color3.fromRGB(255, 0, 50)
+    
+    -- Info Billboard (Name, Health, Distance)
+    local head = char:FindFirstChild("Head")
+    if head then
+        local billboard = head:FindFirstChild("AB_Info") or Instance.new("BillboardGui", head)
+        billboard.Name = "AB_Info"
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 100, 0, 50)
+        billboard.ExtentsOffset = Vector3.new(0, 3, 0)
         
-        -- Billboard for Name, Health, Distance
-        local b = p.Character:FindFirstChild("Head"):FindFirstChild("Info") or Instance.new("BillboardGui", p.Character:FindFirstChild("Head"))
-        b.Name = "Info"
-        b.Size = UDim2.new(0, 100, 0, 50)
-        b.AlwaysOnTop = true
-        b.ExtentsOffset = Vector3.new(0, 2, 0)
+        local label = billboard:FindFirstChild("Label") or Instance.new("TextLabel", billboard)
+        label.Name = "Label"
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.new(1,0,1,0)
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 12
+        label.Visible = _G.ESPEnabled
         
-        local l = b:FindFirstChild("Label") or Instance.new("TextLabel", b)
-        l.Name = "Label"
-        l.BackgroundTransparency = 1
-        l.Size = UDim2.new(1, 0, 1, 0)
-        l.TextColor3 = Color3.fromRGB(255, 255, 255)
-        l.TextStrokeTransparency = 0
-        l.TextSize = 12
-        l.Visible = _G.ESP
-        
-        local health = math.floor(p.Character.Humanoid.Health)
-        local dist = math.floor((p.Character.HumanoidRootPart.Position - Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
-        l.Text = string.format("%s\nHP: %s | %s m", p.Name, health, dist)
+        local hp = math.floor(char.Humanoid.Health)
+        local d = math.floor((hrp.Position - Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude)
+        label.Text = string.format("%s\nHP: %d | %s m", p.Name, hp, d)
     end
 end
 
--- --- MAIN LOOP ---
+-- Render Loop
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    
-    if _G.Aimbot then
+    FOVCircle.Radius = _G.FOV
+    FOVCircle.Visible = _G.AimbotEnabled
+
+    if _G.AimbotEnabled then
         local target = GetClosestPlayer()
         if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+            local targetPos = Camera:WorldToViewportPoint(target.Character.HumanoidRootPart.Position)
+            mousemoverel((targetPos.X - Camera.ViewportSize.X/2) * _G.Smoothness, (targetPos.Y - Camera.ViewportSize.Y/2) * _G.Smoothness)
         end
     end
-    
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= Players.LocalPlayer then ApplyESP(p) end
+
+    if _G.ESPEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= Players.LocalPlayer then ApplyESP(p) end
+        end
     end
 end)
 
--- Buttons Connect
-ToggleESP.MouseButton1Click:Connect(function()
-    _G.ESP = not _G.ESP
-    ToggleESP.Text = _G.ESP and "ESP: ON" or "ESP: OFF"
-    ToggleESP.BackgroundColor3 = _G.ESP and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
+-- Hide/Close Button (Right Control or UI Button)
+MainTab:CreateButton("Destroy Menu", function()
+    ScreenGui:Destroy()
+    FOVCircle:Remove()
 end)
 
-ToggleAimbot.MouseButton1Click:Connect(function()
-    _G.Aimbot = not _G.Aimbot
-    ToggleAimbot.Text = _G.Aimbot and "AIMBOT: ON" or "AIMBOT: OFF"
-    ToggleAimbot.BackgroundColor3 = _G.Aimbot and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
-end)
+Library:Notify("ABHISHEK MOD Loaded", "Happy Cheating!", 3)
