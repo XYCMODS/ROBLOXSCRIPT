@@ -15,7 +15,7 @@ _G.FOV = 150
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "AbhishekModMenu"
 
--- --- 1. MAIN MENU FRAME ---
+-- --- MAIN MENU & LOGO (Wahi Pehle Wala) ---
 local MainFrame = Instance.new("Frame", ScreenGui)
 local Layout = Instance.new("UIListLayout", MainFrame)
 local Title = Instance.new("TextLabel", MainFrame)
@@ -40,38 +40,25 @@ Title.TextSize = 18
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- --- 2. FLOATING LOGO (HIDE HONE KE BAAD) ---
 local OpenButton = Instance.new("TextButton", ScreenGui)
 OpenButton.Size = UDim2.new(0, 50, 0, 50)
 OpenButton.Position = UDim2.new(0.05, 0, 0.15, 0)
 OpenButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-OpenButton.Text = "AM" -- Logo Text
+OpenButton.Text = "AM"
 OpenButton.TextColor3 = Color3.fromRGB(0, 255, 127)
 OpenButton.Font = Enum.Font.GothamBold
 OpenButton.TextSize = 20
-OpenButton.Visible = false -- Shuruat mein hidden
-OpenButton.Active = true
-OpenButton.Draggable = true -- Logo ko bhi move kar sakte ho
+OpenButton.Visible = false
+OpenButton.Draggable = true
+Instance.new("UICorner", OpenButton).CornerRadius = UDim.new(0, 50)
+Instance.new("UIStroke", OpenButton).Color = Color3.fromRGB(0, 255, 127)
 
-Instance.new("UICorner", OpenButton).CornerRadius = UDim.new(0, 50) -- Round Logo
-local LogoStroke = Instance.new("UIStroke", OpenButton)
-LogoStroke.Color = Color3.fromRGB(0, 255, 127)
-LogoStroke.Thickness = 2
-
--- Hide/Show Logic
 local function ToggleMenu()
-    if MainFrame.Visible then
-        MainFrame.Visible = false
-        OpenButton.Visible = true
-    else
-        MainFrame.Visible = true
-        OpenButton.Visible = false
-    end
+    MainFrame.Visible = not MainFrame.Visible
+    OpenButton.Visible = not MainFrame.Visible
 end
-
 OpenButton.MouseButton1Click:Connect(ToggleMenu)
 
--- --- BUTTON CREATOR ---
 local function CreateButton(name, callback)
     local btn = Instance.new("TextButton", MainFrame)
     btn.Size = UDim2.new(0.9, 0, 0, 35)
@@ -84,7 +71,6 @@ local function CreateButton(name, callback)
     btn.MouseButton1Click:Connect(function() callback(btn) end)
 end
 
--- --- MENU BUTTONS ---
 CreateButton("AIMBOT: OFF", function(btn)
     _G.Aimbot = not _G.Aimbot
     btn.Text = _G.Aimbot and "AIMBOT: ON" or "AIMBOT: OFF"
@@ -114,29 +100,45 @@ CreateButton("ESP HEALTH: OFF", function(btn)
     btn.BackgroundColor3 = _G.ESP_Health and Color3.fromRGB(0, 170, 100) or Color3.fromRGB(40, 40, 40)
 end)
 
-CreateButton("HIDE MENU", function()
-    ToggleMenu()
-end)
+CreateButton("HIDE MENU", ToggleMenu)
 
--- --- FOV CIRCLE ---
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5
-FOVCircle.Color = Color3.fromRGB(0, 255, 127)
-FOVCircle.Filled = false -- Outline Only
-FOVCircle.Transparency = 1
+-- --- VISIBILITY CHECK LOGIC ---
+local function IsVisible(targetPart)
+    local character = Players.LocalPlayer.Character
+    if not character then return false end
+    
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {character, targetPart.Parent} -- Hum khud ko aur target ko raycast se exclude kar dete hain
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
+    
+    local result = workspace:Raycast(origin, direction, params)
+    
+    -- Agar beech mein kuch nahi aaya (result nil hai), matlab banda dikh raha hai
+    if result == nil then
+        return true
+    end
+    return false
+end
 
--- --- TARGET SWITCHING LOGIC ---
+-- --- SMART TARGETING ---
 local function GetClosest()
     local target = nil
     local shortestDist = _G.FOV
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
-            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            local head = v.Character.Head
+            local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
             if onScreen then
                 local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
                 if mag < shortestDist then
-                    shortestDist = mag
-                    target = v
+                    -- **WALL CHECK ADDED HERE**
+                    if IsVisible(head) then
+                        shortestDist = mag
+                        target = v
+                    end
                 end
             end
         end
@@ -145,6 +147,9 @@ local function GetClosest()
 end
 
 -- --- LOOP ---
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5; FOVCircle.Color = Color3.fromRGB(0, 255, 127); FOVCircle.Filled = false; FOVCircle.Transparency = 1
+
 RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = _G.Aimbot
     FOVCircle.Radius = _G.FOV
@@ -153,40 +158,29 @@ RunService.RenderStepped:Connect(function()
     if _G.Aimbot then
         local t = GetClosest()
         if t then
-            -- Strong Lock Logic
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
         end
     end
 
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= Players.LocalPlayer and p.Character then
-            -- ESP Highlight
             local h = p.Character:FindFirstChild("AB_H") or Instance.new("Highlight", p.Character)
-            h.Name = "AB_H"
             h.Enabled = _G.ESP_Box
             h.FillColor = Color3.fromRGB(0, 255, 127)
             
-            -- ESP Info
             local head = p.Character:FindFirstChild("Head")
             if head then
                 local b = head:FindFirstChild("AB_B") or Instance.new("BillboardGui", head)
-                b.Name = "AB_B"
                 b.AlwaysOnTop = true
                 b.Size = UDim2.new(0, 100, 0, 40)
                 b.ExtentsOffset = Vector3.new(0, 2, 0)
                 local l = b:FindFirstChild("L") or Instance.new("TextLabel", b)
-                l.Name = "L"
-                l.BackgroundTransparency = 1
-                l.Size = UDim2.new(1,0,1,0)
-                l.TextColor3 = Color3.fromRGB(255, 255, 255)
-                l.Font = Enum.Font.GothamBold
-                l.TextSize = 10
+                l.BackgroundTransparency = 1; l.Size = UDim2.new(1,0,1,0); l.TextColor3 = Color3.fromRGB(255, 255, 255); l.Font = Enum.Font.GothamBold; l.TextSize = 10
                 
                 local txt = ""
                 if _G.ESP_Name then txt = txt .. p.Name .. "\n" end
                 if _G.ESP_Health then txt = txt .. math.floor(p.Character.Humanoid.Health) .. " HP" end
-                l.Text = txt
-                l.Visible = (_G.ESP_Name or _G.ESP_Health)
+                l.Text = txt; l.Visible = (_G.ESP_Name or _G.ESP_Health)
             end
         end
     end
