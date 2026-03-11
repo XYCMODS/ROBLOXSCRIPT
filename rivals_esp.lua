@@ -11,13 +11,16 @@ _G.ESP_Name = false
 _G.ESP_Health = false
 _G.FOV = 150 
 
--- --- UI CREATION ---
+-- --- UI PARENT ---
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "AbhishekModMenu"
+
+-- --- 1. MAIN MENU FRAME ---
 local MainFrame = Instance.new("Frame", ScreenGui)
 local Layout = Instance.new("UIListLayout", MainFrame)
 local Title = Instance.new("TextLabel", MainFrame)
 
-MainFrame.Size = UDim2.new(0, 200, 0, 360) -- Height thodi badha di buttons ke liye
+MainFrame.Size = UDim2.new(0, 200, 0, 340)
 MainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 MainFrame.Active = true
@@ -28,13 +31,45 @@ Stroke.Color = Color3.fromRGB(0, 255, 127)
 Stroke.Thickness = 2
 
 Title.Size = UDim2.new(1, 0, 0, 45)
-Title.Text = "ABHISHEK MODS"
+Title.Text = "ABHISHEK MOD"
 Title.TextColor3 = Color3.fromRGB(0, 255, 127)
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
+
 Layout.Padding = UDim.new(0, 5)
 Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- --- 2. FLOATING LOGO (HIDE HONE KE BAAD) ---
+local OpenButton = Instance.new("TextButton", ScreenGui)
+OpenButton.Size = UDim2.new(0, 50, 0, 50)
+OpenButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+OpenButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+OpenButton.Text = "AM" -- Logo Text
+OpenButton.TextColor3 = Color3.fromRGB(0, 255, 127)
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.TextSize = 20
+OpenButton.Visible = false -- Shuruat mein hidden
+OpenButton.Active = true
+OpenButton.Draggable = true -- Logo ko bhi move kar sakte ho
+
+Instance.new("UICorner", OpenButton).CornerRadius = UDim.new(0, 50) -- Round Logo
+local LogoStroke = Instance.new("UIStroke", OpenButton)
+LogoStroke.Color = Color3.fromRGB(0, 255, 127)
+LogoStroke.Thickness = 2
+
+-- Hide/Show Logic
+local function ToggleMenu()
+    if MainFrame.Visible then
+        MainFrame.Visible = false
+        OpenButton.Visible = true
+    else
+        MainFrame.Visible = true
+        OpenButton.Visible = false
+    end
+end
+
+OpenButton.MouseButton1Click:Connect(ToggleMenu)
 
 -- --- BUTTON CREATOR ---
 local function CreateButton(name, callback)
@@ -47,10 +82,9 @@ local function CreateButton(name, callback)
     btn.TextSize = 13
     Instance.new("UICorner", btn)
     btn.MouseButton1Click:Connect(function() callback(btn) end)
-    return btn
 end
 
--- --- FEATURES ---
+-- --- MENU BUTTONS ---
 CreateButton("AIMBOT: OFF", function(btn)
     _G.Aimbot = not _G.Aimbot
     btn.Text = _G.Aimbot and "AIMBOT: ON" or "AIMBOT: OFF"
@@ -80,28 +114,28 @@ CreateButton("ESP HEALTH: OFF", function(btn)
     btn.BackgroundColor3 = _G.ESP_Health and Color3.fromRGB(0, 170, 100) or Color3.fromRGB(40, 40, 40)
 end)
 
-CreateButton("CLOSE MENU (HIDE)", function()
-    ScreenGui.Enabled = not ScreenGui.Enabled
+CreateButton("HIDE MENU", function()
+    ToggleMenu()
 end)
 
--- --- FOV CIRCLE FIX ---
+-- --- FOV CIRCLE ---
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
+FOVCircle.Thickness = 1.5
 FOVCircle.Color = Color3.fromRGB(0, 255, 127)
-FOVCircle.Filled = false -- <<-- YE FIX HAI, AB GOLA NAHI DIKHEGA
+FOVCircle.Filled = false -- Outline Only
 FOVCircle.Transparency = 1
 
--- --- AIMBOT & ESP LOGIC ---
+-- --- TARGET SWITCHING LOGIC ---
 local function GetClosest()
     local target = nil
-    local dist = _G.FOV
+    local shortestDist = _G.FOV
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
             local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
             if onScreen then
                 local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                if mag < dist then
-                    dist = mag
+                if mag < shortestDist then
+                    shortestDist = mag
                     target = v
                 end
             end
@@ -110,6 +144,7 @@ local function GetClosest()
     return target
 end
 
+-- --- LOOP ---
 RunService.RenderStepped:Connect(function()
     FOVCircle.Visible = _G.Aimbot
     FOVCircle.Radius = _G.FOV
@@ -118,23 +153,24 @@ RunService.RenderStepped:Connect(function()
     if _G.Aimbot then
         local t = GetClosest()
         if t then
-            -- Smooth Look Logic
-            local targetPos = Camera:WorldToScreenPoint(t.Character.Head.Position)
-            local mousePos = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+            -- Strong Lock Logic
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
         end
     end
 
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= Players.LocalPlayer and p.Character then
-            local h = p.Character:FindFirstChild("Highlight") or Instance.new("Highlight", p.Character)
+            -- ESP Highlight
+            local h = p.Character:FindFirstChild("AB_H") or Instance.new("Highlight", p.Character)
+            h.Name = "AB_H"
             h.Enabled = _G.ESP_Box
-            h.FillColor = Color3.fromRGB(255, 0, 0)
+            h.FillColor = Color3.fromRGB(0, 255, 127)
             
+            -- ESP Info
             local head = p.Character:FindFirstChild("Head")
             if head then
-                local b = head:FindFirstChild("Info") or Instance.new("BillboardGui", head)
-                b.Name = "Info"
+                local b = head:FindFirstChild("AB_B") or Instance.new("BillboardGui", head)
+                b.Name = "AB_B"
                 b.AlwaysOnTop = true
                 b.Size = UDim2.new(0, 100, 0, 40)
                 b.ExtentsOffset = Vector3.new(0, 2, 0)
