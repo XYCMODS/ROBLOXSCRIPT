@@ -6,143 +6,147 @@ local Camera = workspace.CurrentCamera
 -- Variables
 _G.Aimbot = false
 _G.ESP = false
-_G.FOV = 150
+_G.FOV = 120
 
--- UI Creation
+-- --- SIMPLE UI ---
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 local MainFrame = Instance.new("Frame", ScreenGui)
-local UICorner = Instance.new("UICorner", MainFrame)
-local UIStroke = Instance.new("UIStroke", MainFrame)
-local ImageLabel = Instance.new("ImageLabel", MainFrame)
 local Title = Instance.new("TextLabel", MainFrame)
+local Scroll = Instance.new("ScrollingFrame", MainFrame)
+local Layout = Instance.new("UIListLayout", Scroll)
 
--- Window Design
-MainFrame.Size = UDim2.new(0, 220, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -110, 0.5, -160)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+-- Window Style
+MainFrame.Size = UDim2.new(0, 180, 0, 220)
+MainFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Draggable = true -- Mobile friendly
 
-UICorner.CornerRadius = UDim.new(0, 15)
-UIStroke.Color = Color3.fromRGB(0, 255, 150)
-UIStroke.Thickness = 2
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+local Stroke = Instance.new("UIStroke", MainFrame)
+Stroke.Color = Color3.fromRGB(0, 255, 127)
+Stroke.Thickness = 1.5
 
--- User Image
-ImageLabel.Size = UDim2.new(0, 60, 0, 60)
-ImageLabel.Position = UDim2.new(0.5, -30, 0.05, 0)
-ImageLabel.Image = "rbxassetid://18635887222" -- Default ID or direct link support needs special handling in Roblox, using proxy
-ImageLabel.BackgroundTransparency = 1
--- Note: Direct external URLs sometimes need a proxy, setting up the layout first
-
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Position = UDim2.new(0, 0, 0.25, 0)
+-- Title
+Title.Size = UDim2.new(1, 0, 0, 35)
 Title.Text = "ABHISHEK MOD"
-Title.TextColor3 = Color3.fromRGB(0, 255, 150)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
+Title.TextColor3 = Color3.fromRGB(0, 255, 127)
 Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
 
--- Button Generator Function
-local function CreateButton(name, pos, callback)
-    local btn = Instance.new("TextButton", MainFrame)
-    btn.Size = UDim2.new(0.8, 0, 0, 35)
-    btn.Position = pos
-    btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+-- Scroll Area
+Scroll.Size = UDim2.new(1, -10, 1, -45)
+Scroll.Position = UDim2.new(0, 5, 0, 40)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 0
+Layout.Padding = UDim.new(0, 5)
+Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Button Function
+local function AddButton(text, callback)
+    local btn = Instance.new("TextButton", Scroll)
+    btn.Size = UDim2.new(0.95, 0, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     
     btn.MouseButton1Click:Connect(function()
         callback(btn)
     end)
 end
 
--- FOV Circle
+-- FOV Circle Drawing
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
-FOVCircle.Color = Color3.fromRGB(0, 255, 150)
+FOVCircle.Thickness = 1
+FOVCircle.Color = Color3.fromRGB(0, 255, 127)
 FOVCircle.Visible = false
-FOVCircle.NumSides = 64
+FOVCircle.Transparency = 0.8
 
--- Features
-CreateButton("ESP: OFF", UDim2.new(0.1, 0, 0.4, 0), function(btn)
+-- --- FEATURES ---
+
+AddButton("ESP: OFF", function(btn)
     _G.ESP = not _G.ESP
     btn.Text = _G.ESP and "ESP: ON" or "ESP: OFF"
-    btn.BackgroundColor3 = _G.ESP and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(35, 35, 35)
+    btn.TextColor3 = _G.ESP and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(255, 255, 255)
 end)
 
-CreateButton("AIMBOT: OFF", UDim2.new(0.1, 0, 0.55, 0), function(btn)
+AddButton("AIMBOT: OFF", function(btn)
     _G.Aimbot = not _G.Aimbot
     FOVCircle.Visible = _G.Aimbot
     btn.Text = _G.Aimbot and "AIMBOT: ON" or "AIMBOT: OFF"
-    btn.BackgroundColor3 = _G.Aimbot and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(35, 35, 35)
+    btn.TextColor3 = _G.Aimbot and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(255, 255, 255)
 end)
 
-CreateButton("CLOSE MENU", UDim2.new(0.1, 0, 0.85, 0), function()
+AddButton("CLOSE", function()
     ScreenGui:Destroy()
     FOVCircle:Remove()
 end)
 
--- Aimbot Logic
-local function GetTarget()
-    local closest = nil
+-- --- LOGIC ---
+
+local function GetClosest()
+    local target = nil
     local dist = _G.FOV
     for _, v in pairs(Players:GetPlayers()) do
-        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+        if v ~= Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
             local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
             if onScreen then
                 local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
                 if mag < dist then
                     dist = mag
-                    closest = v
+                    target = v
                 end
             end
         end
     end
-    return closest
+    return target
 end
 
--- ESP logic
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
     FOVCircle.Radius = _G.FOV
     
     if _G.Aimbot then
-        local target = GetTarget()
-        if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        local t = GetClosest()
+        if t then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, t.Character.Head.Position)
         end
     end
-
+    
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= Players.LocalPlayer and p.Character then
-            local char = p.Character
-            local h = char:FindFirstChild("AB_High") or Instance.new("Highlight", char)
-            h.Name = "AB_High"
+            -- Highlight (Wallhack)
+            local h = p.Character:FindFirstChild("AB_H") or Instance.new("Highlight", p.Character)
+            h.Name = "AB_H"
             h.Enabled = _G.ESP
-            h.FillColor = Color3.fromRGB(0, 255, 150)
+            h.FillColor = Color3.fromRGB(0, 255, 127)
             
-            local head = char:FindFirstChild("Head")
+            -- Info (Name/HP/Dist)
+            local head = p.Character:FindFirstChild("Head")
             if head then
-                local bill = head:FindFirstChild("AB_Label") or Instance.new("BillboardGui", head)
-                bill.Name = "AB_Label"
-                bill.Size = UDim2.new(0, 100, 0, 40)
-                bill.AlwaysOnTop = true
-                bill.ExtentsOffset = Vector3.new(0, 2, 0)
+                local b = head:FindFirstChild("AB_B") or Instance.new("BillboardGui", head)
+                b.Name = "AB_B"
+                b.AlwaysOnTop = true
+                b.Size = UDim2.new(0, 100, 0, 40)
+                b.ExtentsOffset = Vector3.new(0, 2, 0)
                 
-                local txt = bill:FindFirstChild("Txt") or Instance.new("TextLabel", bill)
-                txt.Name = "Txt"
-                txt.BackgroundTransparency = 1
-                txt.Size = UDim2.new(1, 0, 1, 0)
-                txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-                txt.TextSize = 10
-                txt.Font = Enum.Font.GothamBold
-                txt.Visible = _G.ESP
+                local l = b:FindFirstChild("L") or Instance.new("TextLabel", b)
+                l.Name = "L"
+                l.BackgroundTransparency = 1
+                l.Size = UDim2.new(1, 0, 1, 0)
+                l.TextColor3 = Color3.fromRGB(255, 255, 255)
+                l.TextSize = 11
+                l.Font = Enum.Font.GothamBold
+                l.Visible = _G.ESP
                 
-                local dist = math.floor((head.Position - Camera.CFrame.Position).Magnitude)
-                txt.Text = p.Name .. " | " .. math.floor(char.Humanoid.Health) .. "HP\n" .. dist .. "m"
+                local hp = math.floor(p.Character.Humanoid.Health)
+                local d = math.floor((head.Position - Camera.CFrame.Position).Magnitude)
+                l.Text = p.Name .. "\n" .. hp .. "HP | " .. d .. "m"
             end
         end
     end
