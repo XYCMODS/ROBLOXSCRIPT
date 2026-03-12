@@ -39,7 +39,7 @@ end)
 
 -- --- 1. UI CREATION ---
 local GUI = Instance.new("ScreenGui", CoreGui)
-GUI.Name = "AbhishekPremium_Final_OldVersion"
+GUI.Name = "ABHISHEK MODS"
 
 local Main = Instance.new("Frame", GUI)
 Main.Size = UDim2.new(0, 380, 0, 280)
