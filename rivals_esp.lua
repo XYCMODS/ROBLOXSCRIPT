@@ -5,154 +5,202 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- --- SETTINGS (FULL REPAIRED) ---
+-- --- SETTINGS & VARIABLES ---
 _G.Aimbot = false
-_G.AutoFire = false
 _G.AimbotFOV = 150
-_G.ShowFOV = true -- FOV hamesha dikhega
 _G.ESP_Box = false
 _G.ESP_Lines = false
-_G.TeamCheck = true
-_G.ESP_ColorIndex = 1
-_G.FOV_ColorIndex = 1
+_G.ESP_Name = false
+_G.ESP_Health = false
+_G.TeamCheck = true -- Default ON rakha hai
 
+-- Color Presets
 local ColorPresets = {
     {Name = "Premium Green", Color = Color3.fromRGB(0, 255, 127)},
     {Name = "Red", Color = Color3.fromRGB(255, 0, 0)},
-    {Name = "White", Color = Color3.fromRGB(255, 255, 255)},
-    {Name = "Yellow", Color = Color3.fromRGB(255, 255, 0)}
+    {Name = "Blue", Color = Color3.fromRGB(0, 100, 255)},
+    {Name = "Pink", Color = Color3.fromRGB(255, 105, 180)},
+    {Name = "Yellow", Color = Color3.fromRGB(255, 255, 0)},
+    {Name = "White", Color = Color3.fromRGB(255, 255, 255)}
 }
+_G.ESP_ColorIndex = 1
+_G.FOV_ColorIndex = 1
 
 local function GetESPColor() return ColorPresets[_G.ESP_ColorIndex].Color end
 local function GetFOVColor() return ColorPresets[_G.FOV_ColorIndex].Color end
 
--- --- DRAWING FOV CIRCLE (FIXED VISIBILITY) ---
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 2
-FOVCircle.Filled = false
-FOVCircle.Transparency = 1 -- Poora dikhega
-FOVCircle.Visible = true
+-- --- LOAD CUSTOM PICTURE ---
+local CustomLogoImage = ""
+pcall(function()
+    local url = "https://i.supaimg.com/8b0f695c-2b86-4162-bacc-ed123dddbfa7/4ee53c99-1d32-4298-aebd-fea26915d594.png"
+    local imageData = game:HttpGet(url)
+    writefile("AbhishekMod_Logo.png", imageData)
+    CustomLogoImage = (getcustomasset or getsynasset)("AbhishekMod_Logo.png")
+end)
 
--- --- WALL CHECK FUNCTION ---
-local function IsVisible(part)
-    local char = LocalPlayer.Character
-    if not char then return false end
-    local origin = Camera.CFrame.Position
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    rayParams.FilterDescendantsInstances = {char, part.Parent}
-    local result = workspace:Raycast(origin, part.Position - origin, rayParams)
-    return result == nil
-end
+-- --- 1. GUI CREATION ---
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "AbhishekPremium_Final"
+local success = pcall(function() GUI.Parent = CoreGui end)
+if not success then GUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
--- --- UI CREATION (OLD PREMIUM STYLE) ---
-local GUI = Instance.new("ScreenGui", CoreGui)
 local Main = Instance.new("Frame", GUI)
-Main.Size = UDim2.new(0, 400, 0, 320); Main.Position = UDim2.new(0.5, -200, 0.5, -160)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Main.Draggable = true; Main.Active = true
-Instance.new("UICorner", Main)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Color3.fromRGB(0, 255, 127); MainStroke.Thickness = 2
+Main.Size = UDim2.new(0, 380, 0, 260)
+Main.Position = UDim2.new(0.5, -190, 0.5, -130)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.Active = true
+Main.Draggable = true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(0, 255, 127)
+Instance.new("UIStroke", Main).Thickness = 2
 
--- Floating Logo
-local LogoBtn = Instance.new("ImageButton", GUI)
-LogoBtn.Size = UDim2.new(0, 60, 0, 60); LogoBtn.Position = UDim2.new(0, 20, 0, 20)
-LogoBtn.Image = "rbxassetid://6031082975"; LogoBtn.Visible = false; LogoBtn.Draggable = true
-Instance.new("UICorner", LogoBtn).CornerRadius = UDim.new(1, 0)
-LogoBtn.MouseButton1Click:Connect(function() Main.Visible = true; LogoBtn.Visible = false end)
+local LogoButton = Instance.new("ImageButton", GUI)
+LogoButton.Size = UDim2.new(0, 50, 0, 50)
+LogoButton.Position = UDim2.new(0.05, 0, 0.15, 0)
+LogoButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LogoButton.Image = CustomLogoImage
+LogoButton.Visible = false
+LogoButton.Active = true
+LogoButton.Draggable = true
+Instance.new("UICorner", LogoButton).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", LogoButton).Color = Color3.fromRGB(0, 255, 127)
+LogoButton.MouseButton1Click:Connect(function() Main.Visible = true; LogoButton.Visible = false end)
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, -90, 0, 40)
+Title.Position = UDim2.new(0, 45, 0, 0)
+Title.Text = "ABHISHEK MOD v2"
+Title.TextColor3 = Color3.fromRGB(0, 255, 127)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
 local Close = Instance.new("TextButton", Main)
-Close.Size = UDim2.new(0, 30, 0, 30); Close.Position = UDim2.new(1, -35, 0, 5); Close.Text = "X"; Close.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-Close.MouseButton1Click:Connect(function() Main.Visible = false; LogoBtn.Visible = true end)
+Close.Size = UDim2.new(0, 30, 0, 30)
+Close.Position = UDim2.new(1, -35, 0, 5)
+Close.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+Close.Text = "X"
+Close.TextColor3 = Color3.fromRGB(255, 255, 255)
+Close.Font = Enum.Font.GothamBold
+Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 6)
+Close.MouseButton1Click:Connect(function() Main.Visible = false; LogoButton.Visible = true end)
 
--- Tabs (Sidebar)
+-- --- 4. TABS SETUP ---
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0, 100, 1, -50); Sidebar.Position = UDim2.new(0, 5, 0, 45); Sidebar.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-Instance.new("UICorner", Sidebar)
+Sidebar.Size = UDim2.new(0, 95, 1, -40); Sidebar.Position = UDim2.new(0, 0, 0, 40); Sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Instance.new("UICorner", Sidebar)
 
 local Pages = Instance.new("Frame", Main)
-Pages.Size = UDim2.new(1, -115, 1, -50); Pages.Position = UDim2.new(0, 110, 0, 45); Pages.BackgroundTransparency = 1
+Pages.Size = UDim2.new(1, -105, 1, -40); Pages.Position = UDim2.new(0, 100, 0, 40); Pages.BackgroundTransparency = 1
 
-local P_Main = Instance.new("ScrollingFrame", Pages); P_Main.Size = UDim2.new(1,0,1,0); P_Main.BackgroundTransparency = 1; P_Main.ScrollBarThickness = 0
-local P_Vis = Instance.new("ScrollingFrame", Pages); P_Vis.Size = UDim2.new(1,0,1,0); P_Vis.Visible = false; P_Vis.BackgroundTransparency = 1; P_Vis.ScrollBarThickness = 0
+local PageMain = Instance.new("ScrollingFrame", Pages); PageMain.Size = UDim2.new(1,0,1,0); PageMain.BackgroundTransparency = 1; PageMain.ScrollBarThickness = 0
+local PageVis = Instance.new("ScrollingFrame", Pages); PageVis.Size = UDim2.new(1,0,1,0); PageVis.BackgroundTransparency = 1; PageVis.ScrollBarThickness = 0; PageVis.Visible = false
+local PageCol = Instance.new("ScrollingFrame", Pages); PageCol.Size = UDim2.new(1,0,1,0); PageCol.BackgroundTransparency = 1; PageCol.ScrollBarThickness = 0; PageCol.Visible = false
 
-Instance.new("UIListLayout", P_Main).Padding = UDim.new(0, 5)
-Instance.new("UIListLayout", P_Vis).Padding = UDim.new(0, 5)
+Instance.new("UIListLayout", PageMain).Padding = UDim.new(0, 8)
+Instance.new("UIListLayout", PageVis).Padding = UDim.new(0, 8)
+Instance.new("UIListLayout", PageCol).Padding = UDim.new(0, 8)
 
-local function CreateTab(name, pos, page)
+local function CreateTabBtn(name, pos, activePage)
     local btn = Instance.new("TextButton", Sidebar)
     btn.Size = UDim2.new(0.9, 0, 0, 35); btn.Position = UDim2.new(0.05, 0, 0, pos)
-    btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "GothamBold"
-    Instance.new("UICorner", btn)
-    btn.MouseButton1Click:Connect(function() P_Main.Visible = false; P_Vis.Visible = false; page.Visible = true end)
-end
-CreateTab("MAIN", 10, P_Main); CreateTab("VISUALS", 50, P_Vis)
-
-local function Toggle(parent, text, var)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0.95, 0, 0, 35); btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); btn.Text = text .. ": OFF"; btn.TextColor3 = Color3.new(1,1,1)
+    btn.Text = name; btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20); btn.TextColor3 = Color3.fromRGB(180, 180, 180); btn.Font = "GothamBold"; btn.TextSize = 11
     Instance.new("UICorner", btn)
     btn.MouseButton1Click:Connect(function()
-        _G[var] = not _G[var]
-        btn.Text = text .. (_G[var] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = _G[var] and Color3.fromRGB(0, 170, 100) or Color3.fromRGB(30, 30, 30)
+        PageMain.Visible = false; PageVis.Visible = false; PageCol.Visible = false
+        activePage.Visible = true
+        for _, v in pairs(Sidebar:GetChildren()) do if v:IsA("TextButton") then v.TextColor3 = Color3.fromRGB(180, 180, 180); v.BackgroundColor3 = Color3.fromRGB(20, 20, 20) end end
+        btn.TextColor3 = Color3.fromRGB(0, 255, 127); btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end)
+    return btn
+end
+
+CreateTabBtn("MAIN", 10, PageMain)
+CreateTabBtn("VISUALS", 55, PageVis)
+CreateTabBtn("COLORS", 100, PageCol)
+
+local function CreateToggle(parent, text, varName)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(0.95, 0, 0, 35); btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30); btn.Text = text .. ": OFF"; btn.TextColor3 = Color3.new(1,1,1); btn.Font = "Gotham"; btn.TextSize = 12
+    Instance.new("UICorner", btn)
+    btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        btn.Text = text .. (_G[varName] and ": ON" or ": OFF")
+        btn.BackgroundColor3 = _G[varName] and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(30, 30, 30)
     end)
 end
 
-Toggle(P_Main, "Aimbot", "Aimbot")
-Toggle(P_Main, "Auto Fire", "AutoFire")
-Toggle(P_Main, "Team Check", "TeamCheck")
-Toggle(P_Main, "Show FOV Circle", "ShowFOV")
-Toggle(P_Vis, "Box ESP", "ESP_Box")
-Toggle(P_Vis, "Line ESP", "ESP_Lines")
+CreateToggle(PageMain, "Enable Aimbot", "Aimbot")
+CreateToggle(PageMain, "Team Check", "TeamCheck") -- TEAM CHECK BUTTON
+CreateToggle(PageVis, "Box ESP", "ESP_Box")
+CreateToggle(PageVis, "Line ESP", "ESP_Lines")
 
--- --- MAIN LOOP ---
+-- --- 6. GAME LOGIC ---
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1.5; FOVCircle.Filled = false
 local Tracers = {}
-RunService.RenderStepped:Connect(function()
-    FOVCircle.Visible = _G.ShowFOV
-    FOVCircle.Radius = _G.AimbotFOV
-    FOVCircle.Color = GetFOVColor()
-    FOVCircle.Position = UserInputService:GetMouseLocation()
 
-    if _G.Aimbot or _G.AutoFire then
-        local target = nil; local dist = _G.AimbotFOV
-        for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
-                if _G.TeamCheck and v.Team == LocalPlayer.Team then continue end
-                
-                -- Wall Check Logic
-                if IsVisible(v.Character.Head) then
-                    local pos, screen = Camera:WorldToViewportPoint(v.Character.Head.Position)
-                    if screen then
-                        local mDist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                        if mDist < dist then dist = mDist; target = v end
-                    end
-                end
+local function IsVisible(part)
+    local ray = RaycastParams.new()
+    ray.FilterType = Enum.RaycastFilterType.Exclude
+    ray.FilterDescendantsInstances = {LocalPlayer.Character, part.Parent}
+    return workspace:Raycast(Camera.CFrame.Position, part.Position - Camera.CFrame.Position, ray) == nil
+end
+
+local function GetTarget()
+    local target, dist = nil, _G.AimbotFOV
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
+            -- Aimbot Team Check
+            if _G.TeamCheck and v.Team == LocalPlayer.Team then continue end
+            
+            local pos, screen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if screen and IsVisible(v.Character.Head) then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then dist = mag; target = v end
             end
         end
+    end
+    return target
+end
 
-        if target then
-            if _G.Aimbot then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, target.Character.Head.Position), 0.2) end
-            if _G.AutoFire then mouse1press(); task.wait(); mouse1release() end
-        end
+RunService.RenderStepped:Connect(function()
+    FOVCircle.Visible = _G.Aimbot
+    FOVCircle.Radius = _G.AimbotFOV
+    FOVCircle.Color = GetFOVColor()
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+    if _G.Aimbot then
+        local t = GetTarget()
+        if t then Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Character.Head.Position), 0.5) end
     end
 
-    -- ESP Fix
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            -- TEAM CHECK LOGIC FOR ESP
             local isEnemy = (p.Team ~= LocalPlayer.Team)
-            local rootPos, onScreen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            local shouldShow = (_G.TeamCheck and isEnemy) or (not _G.TeamCheck)
             
-            if _G.ESP_Box and isEnemy and onScreen then
+            local hrp = p.Character.HumanoidRootPart
+            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            local espColor = GetESPColor()
+
+            if shouldShow and onScreen and p.Character.Humanoid.Health > 0 then
+                -- Tracers
+                if _G.ESP_Lines then
+                    if not Tracers[p] then Tracers[p] = Drawing.new("Line"); Tracers[p].Thickness = 1.5 end
+                    Tracers[p].Visible = true; Tracers[p].Color = espColor
+                    Tracers[p].From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+                    Tracers[p].To = Vector2.new(pos.X, pos.Y)
+                else if Tracers[p] then Tracers[p].Visible = false end end
+
+                -- Box
                 local h = p.Character:FindFirstChild("AB_H") or Instance.new("Highlight", p.Character)
-                h.Name = "AB_H"; h.Enabled = true; h.FillTransparency = 1; h.OutlineColor = GetESPColor()
-            elseif p.Character:FindFirstChild("AB_H") then p.Character.AB_H.Enabled = false end
-            
-            if _G.ESP_Lines and isEnemy and onScreen then
-                if not Tracers[p] then Tracers[p] = Drawing.new("Line") end
-                Tracers[p].Visible = true; Tracers[p].To = Vector2.new(rootPos.X, rootPos.Y)
-                Tracers[p].From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y); Tracers[p].Color = GetESPColor()
-            elseif Tracers[p] then Tracers[p].Visible = false end
+                h.Name = "AB_H"; h.Enabled = _G.ESP_Box; h.FillTransparency = 1; h.OutlineColor = espColor
+            else
+                if Tracers[p] then Tracers[p].Visible = false end
+                if p.Character:FindFirstChild("AB_H") then p.Character.AB_H.Enabled = false end
+            end
         end
     end
 end)
