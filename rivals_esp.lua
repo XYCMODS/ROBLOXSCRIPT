@@ -1,4 +1,4 @@
-Local Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
@@ -39,7 +39,7 @@ end)
 
 -- --- 1. GUI CREATION ---
 local GUI = Instance.new("ScreenGui")
-GUI.Name = "ABHISHEK MODS"
+GUI.Name = "AbhishekPremium_Final"
 local success = pcall(function() GUI.Parent = CoreGui end)
 if not success then GUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
