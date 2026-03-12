@@ -26,7 +26,7 @@ local function GetESPColor() return ColorPresets[_G.ESP_ColorIndex].Color end
 
 -- --- 1. FULL PREMIUM UI CREATION ---
 local GUI = Instance.new("ScreenGui", CoreGui)
-GUI.Name = "AbhishekPremium_Final_V2"
+GUI.Name = "ABHISHEK MODS"
 
 local Main = Instance.new("Frame", GUI)
 Main.Size = UDim2.new(0, 400, 0, 300)
